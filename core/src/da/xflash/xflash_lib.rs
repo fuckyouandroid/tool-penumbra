@@ -372,12 +372,12 @@ impl XFlash {
             .as_ref()
             .ok_or_else(|| Error::penumbra("Device is in BROM but no preloader was provided!"))?;
 
-        let emi = extract_emi_settings(pl)
-            .ok_or_else(|| Error::penumbra("Failed to extract EMI settings from preloader!"))?;
+        // TODO: Avoid vec
+        let emi = extract_emi_settings(pl)?.to_vec();
 
         info!("[Penumbra] Uploading EMI settings to device...");
         self.send_cmd(Cmd::InitExtRam)?;
-        self.send_data(&[&(emi.len() as u32).to_le_bytes(), emi.as_slice()])?;
+        self.send_data(&[&(emi.len() as u32).to_le_bytes(), &emi])?;
         info!("[Penumbra] EMI settings uploaded successfully.");
 
         Ok(())
