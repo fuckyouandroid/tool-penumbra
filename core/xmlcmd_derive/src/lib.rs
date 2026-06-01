@@ -184,10 +184,8 @@ fn extract_field_entries(data: &Data) -> Vec<proc_macro2::TokenStream> {
                 FieldMeta::Skip => continue,
 
                 FieldMeta::Simple { tag, section, .. } => {
-                    let section_expr = match &section {
-                        Some(s) => quote! { Some(#s) },
-                        None => quote! { None },
-                    };
+                    let section_expr =
+                        section.as_ref().map_or_else(|| quote! { None }, |s| quote! { Some(#s) });
                     let tag_lit = LitStr::new(&tag, Span::call_site());
                     arg_entries.push(quote! {
                         (#section_expr, #tag_lit, self.#ident.to_string())
@@ -205,10 +203,8 @@ fn extract_field_entries(data: &Data) -> Vec<proc_macro2::TokenStream> {
                         quote! { #id = self.#id }
                     });
 
-                    let section_expr = match &section {
-                        Some(s) => quote! { Some(#s) },
-                        None => quote! { None },
-                    };
+                    let section_expr =
+                        section.as_ref().map_or_else(|| quote! { None }, |s| quote! { Some(#s) });
 
                     let tag_lit = LitStr::new(&tag, Span::call_site());
                     arg_entries.push(quote! {
