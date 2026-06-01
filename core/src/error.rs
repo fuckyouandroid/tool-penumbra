@@ -57,6 +57,8 @@ pub enum Error {
     InvalidUtf8,
     #[error("Invalid UTF-16 string")]
     InvalidUtf16,
+    #[error("HACC error: {0}")]
+    HaccError(#[from] hacc::Error),
 }
 
 impl Error {
