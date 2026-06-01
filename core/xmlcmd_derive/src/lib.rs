@@ -13,8 +13,8 @@ use syn::{Attribute, Data, DeriveInput, Error, Fields, Ident, LitStr, parse_macr
 /// to args, otherwise it's either Simple or Formatted (if fmt).
 enum FieldMeta {
     Skip,
-    Simple { tag: String, section: Option<String> },
-    Formatted { tag: String, fmt: String, section: Option<String> },
+    Simple { tag: String, section: Option<String>, default_value: Option<String> },
+    Formatted { tag: String, fmt: String, section: Option<String>, default_value: Option<String> },
 }
 
 /// Struct-level metadata extracted from #[xmlcmd(... )]
@@ -141,8 +141,31 @@ fn extract_constructor(
             let ident = field.ident.as_ref().unwrap();
             let ty = &field.ty;
 
-            constructor_args.push(quote! { #ident: impl Into<#ty> });
-            constructor_fields.push(quote! { #ident: #ident.into() });
+            let meta = extract_field_metadata(&field.attrs, ident);
+            let default_value = match meta {
+                FieldMeta::Simple { default_value, .. } => default_value,
+                FieldMeta::Formatted { default_value, .. } => default_value,
+                FieldMeta::Skip => None,
+            };
+
+            if let Some(val_str) = default_value {
+                let val_tokens = if val_str == "true" || val_str == "false" {
+                    val_str.parse::<proc_macro2::TokenStream>().unwrap()
+                } else if val_str.starts_with("0x") || val_str.starts_with("0X") {
+                    val_str
+                        .parse::<proc_macro2::TokenStream>()
+                        .unwrap_or_else(|_| quote! { #val_str })
+                } else if val_str.chars().all(|c| c.is_ascii_digit()) {
+                    val_str.parse::<proc_macro2::TokenStream>().unwrap()
+                } else {
+                    quote! { #val_str }
+                };
+
+                constructor_fields.push(quote! { #ident: #val_tokens });
+            } else {
+                constructor_args.push(quote! { #ident: impl Into<#ty> });
+                constructor_fields.push(quote! { #ident: #ident.into() });
+            }
         }
     }
 
@@ -160,7 +183,7 @@ fn extract_field_entries(data: &Data) -> Vec<proc_macro2::TokenStream> {
             match extract_field_metadata(&field.attrs, ident) {
                 FieldMeta::Skip => continue,
 
-                FieldMeta::Simple { tag, section } => {
+                FieldMeta::Simple { tag, section, .. } => {
                     let section_expr = match &section {
                         Some(s) => quote! { Some(#s) },
                         None => quote! { None },
@@ -171,7 +194,7 @@ fn extract_field_entries(data: &Data) -> Vec<proc_macro2::TokenStream> {
                     });
                 }
 
-                FieldMeta::Formatted { tag, fmt, section } => {
+                FieldMeta::Formatted { tag, fmt, section, .. } => {
                     let field_names = extract_field_names(&fmt);
                     let field_idents: Vec<Ident> = field_names
                         .iter()
@@ -203,6 +226,7 @@ fn extract_field_metadata(attrs: &[Attribute], ident: &Ident) -> FieldMeta {
     let mut tag_name = ident.to_string();
     let mut fmt_str = None;
     let mut section = None;
+    let mut default_value = None;
     let mut saw_xml = false;
 
     for attr in attrs {
@@ -230,9 +254,10 @@ fn extract_field_metadata(attrs: &[Attribute], ident: &Ident) -> FieldMeta {
                         }
                     }
                     "custom_arg" => {
-                        if let Some(v) = value {
-                            section = Some(v)
-                        }
+                        section = value;
+                    }
+                    "value" => {
+                        default_value = value;
                     }
                     _ => {}
                 }
@@ -247,9 +272,9 @@ fn extract_field_metadata(attrs: &[Attribute], ident: &Ident) -> FieldMeta {
     }
 
     if let Some(fmt) = fmt_str {
-        FieldMeta::Formatted { tag: tag_name, fmt, section }
+        FieldMeta::Formatted { tag: tag_name, fmt, section, default_value }
     } else {
-        FieldMeta::Simple { tag: tag_name, section }
+        FieldMeta::Simple { tag: tag_name, section, default_value }
     }
 }
 
