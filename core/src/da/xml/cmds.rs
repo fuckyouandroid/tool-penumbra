@@ -12,8 +12,6 @@ use xmlcmd_derive::XmlCommand;
 pub const DT_PROTOCOL_FLOW: u32 = 0x1;
 pub const CMD_START: &[u8] = b"<command>CMD:START</command>";
 pub const CMD_END: &[u8] = b"<command>CMD:END</command>";
-pub const HOST_CMDS: &str =
-    "CMD:DOWNLOAD-FILE^1@CMD:FILE-SYS-OPERATION^1@CMD:PROGRESS-REPORT^1@CMD:UPLOAD-FILE^1@";
 
 /// Perform a (fake) file system operation
 #[allow(dead_code)]
@@ -59,32 +57,34 @@ pub struct BootTo {
     at_addr: u64,
     #[xml(tag = "jmp_address", fmt = "0x{jmp_addr:x}")]
     jmp_addr: u64,
-    #[xml(tag = "source_file", fmt = "MEM://0x{host_offset:x}:0x{length:x}")]
-    host_offset: u64,
-    length: u64,
+    #[xml(tag = "source_file", value = "MEM://0x0:0x0")]
+    host_offset: &'static str,
 }
 
 #[derive(XmlCommand)]
 #[xmlcmd(version = "1.1")]
 pub struct SetRuntimeParameter {
-    #[xml(tag = "checksum_level")]
-    checksum_level: String,
-    #[xml(tag = "battery_exist")]
-    battery_exist: String,
+    #[xml(tag = "checksum_level", value = "NONE")]
+    checksum_level: &'static str,
+    #[xml(tag = "battery_exist", value = "AUTO-DETECT")]
+    battery_exist: &'static str,
     #[xml(tag = "da_log_level")]
     da_log_level: String,
     #[xml(tag = "log_channel")]
     log_channel: String,
-    #[xml(tag = "system_os")]
-    system_os: String,
-    #[xml(custom_arg = "adv", tag = "initialize_dram")]
-    init_dram: String,
+    #[xml(tag = "system_os", value = "LINUX")]
+    system_os: &'static str,
+    #[xml(custom_arg = "adv", tag = "initialize_dram", value = "YES")]
+    init_dram: &'static str,
 }
 
 #[derive(XmlCommand)]
 pub struct HostSupportedCommands {
-    #[xml(tag = "host_capability")]
-    host_capability: String,
+    #[xml(
+        tag = "host_capability",
+        value = "CMD:DOWNLOAD-FILE^1@CMD:FILE-SYS-OPERATION^1@CMD:PROGRESS-REPORT^1@CMD:UPLOAD-FILE^1@"
+    )]
+    host_capability: &'static str,
 }
 
 #[derive(XmlCommand)]
@@ -101,15 +101,15 @@ pub struct GetSysProperty {
     #[xml(tag = "key")]
     key: String,
     #[allow(dead_code)]
-    #[xml(tag = "target_file", fmt = "MEM://0x0:0x200000")]
-    target_file: String,
+    #[xml(tag = "target_file", value = "MEM://0x0:0x200000")]
+    target_file: &'static str,
 }
 
 #[derive(XmlCommand)]
 pub struct SecurityGetDevFwInfo {
     #[allow(dead_code)]
-    #[xml(tag = "target_file", fmt = "MEM://0x0:0x200000")]
-    target_file: String,
+    #[xml(tag = "target_file", value = "MEM://0x0:0x200000")]
+    target_file: &'static str,
 }
 
 #[derive(XmlCommand)]
@@ -120,9 +120,8 @@ pub struct SecuritySetFlashPolicy {
 
 #[derive(XmlCommand)]
 pub struct GetHwInfo {
-    #[allow(dead_code)]
-    #[xml(tag = "target_file", fmt = "MEM://0x0:0x200000")]
-    target_file: String,
+    #[xml(tag = "target_file", value = "MEM://0x0:0x200000")]
+    target_file: &'static str,
 }
 
 #[derive(XmlCommand)]

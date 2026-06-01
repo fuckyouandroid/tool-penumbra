@@ -13,13 +13,13 @@ use crate::core::auth::{AuthManager, SignData, SignPurpose, SignRequest};
 use crate::core::devinfo::DeviceInfo;
 use crate::core::log_buffer::DeviceLog;
 use crate::core::storage::StorageKind;
+use crate::core::traits::ToBytes;
 use crate::da::protocol::{DAProtocolParams, DataType, PacketHeader};
 use crate::da::xml::cmds::{
     CMD_END,
     CMD_START,
     FileSystemOp,
     GetSysProperty,
-    HOST_CMDS,
     HostSupportedCommands,
     NotifyInitHw,
     SecurityGetDevFwInfo,
@@ -399,17 +399,8 @@ impl Xml {
         let log_level = if self.verbose { "DEBUG" } else { "INFO" };
         let channel = if self.usb_log_channel { "USB" } else { "UART" };
 
-        xmlcmd_e!(
-            self,
-            SetRuntimeParameter,
-            "NONE",
-            "AUTO-DETECT",
-            log_level,
-            channel,
-            "LINUX",
-            "YES"
-        )?;
-        xmlcmd_e!(self, HostSupportedCommands, HOST_CMDS)?;
+        xmlcmd_e!(self, SetRuntimeParameter, log_level, channel,)?;
+        xmlcmd_e!(self, HostSupportedCommands)?;
         // Wait for the device to initialize DRAM
         xmlcmd!(self, NotifyInitHw)?;
         let mock_progress = |_, _| {};
@@ -443,7 +434,7 @@ impl Xml {
     }
 
     pub(super) fn handle_sla(&mut self) -> Result<bool> {
-        xmlcmd!(self, GetSysProperty, "DA.SLA", "0")?;
+        xmlcmd!(self, GetSysProperty, "DA.SLA")?;
 
         let response = self.get_upload_file_resp()?;
         self.lifetime_ack(XmlCmdLifetime::CmdEnd)?;
@@ -482,7 +473,7 @@ impl Xml {
             ));
         }
 
-        xmlcmd!(self, SecurityGetDevFwInfo, "0")?;
+        xmlcmd!(self, SecurityGetDevFwInfo)?;
         let fw_info = self.get_upload_file_resp()?;
         self.lifetime_ack(XmlCmdLifetime::CmdEnd)?;
 

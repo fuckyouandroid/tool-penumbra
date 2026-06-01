@@ -13,7 +13,7 @@ use crate::da::xml::cmds::{GetHwInfo, XmlCmdLifetime};
 use crate::utilities::xml::get_tag;
 
 pub fn detect_storage(xml: &mut Xml) -> Option<StorageKind> {
-    xmlcmd!(xml, GetHwInfo, "0").ok();
+    xmlcmd!(xml, GetHwInfo).ok();
 
     let reponse = xml.get_upload_file_resp().ok()?;
 

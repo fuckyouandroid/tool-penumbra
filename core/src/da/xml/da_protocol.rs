@@ -67,7 +67,7 @@ impl DownloadProtocol for Xml {
         exploit!(HeapBait, self);
 
         // These may fail on some devices
-        xmlcmd_e!(self, HostSupportedCommands, HOST_CMDS).ok();
+        xmlcmd_e!(self, HostSupportedCommands).ok();
 
         xmlcmd!(self, NotifyInitHw)?;
         let mock_progress = |_, _| {};
@@ -83,7 +83,7 @@ impl DownloadProtocol for Xml {
     }
 
     fn boot_to(&mut self, addr: u32, data: &[u8]) -> Result<bool> {
-        xmlcmd!(self, BootTo, addr, addr, 0x0u64, data.len() as u64)?;
+        xmlcmd!(self, BootTo, addr, addr)?;
 
         let reader = BufReader::new(Cursor::new(data));
         let progress = |_, _| {};
