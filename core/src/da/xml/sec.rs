@@ -22,13 +22,15 @@ pub fn parse_seccfg(xml: &mut Xml) -> Option<SecCfgV4> {
 
     let mut parsed_seccfg = SecCfgV4::parse_header(&seccfg_header).ok()?;
     let hash = parsed_seccfg.get_encrypted_hash();
-    for algo in [SecCfgV4Algo::SW, SecCfgV4Algo::HW, SecCfgV4Algo::HWv3, SecCfgV4Algo::HWv4] {
+
+    for algo in [SecCfgV4Algo::SW, SecCfgV4Algo::HWv4] {
         let dec_hash = match algo {
-            SecCfgV4Algo::SW => sej(xml, &hash, false, false, false, false).ok()?,
-            SecCfgV4Algo::HW => sej(xml, &hash, false, false, true, true).ok()?,
-            SecCfgV4Algo::HWv3 => sej(xml, &hash, false, true, true, false).ok()?,
-            SecCfgV4Algo::HWv4 => sej(xml, &hash, false, false, true, false).ok()?,
+            SecCfgV4Algo::SW => sej(xml, &hash, false, false).ok()?,
+            SecCfgV4Algo::HWv4 => sej(xml, &hash, false, true).ok()?,
+            // On V6, if neither SW or HWv4 works, we can't do anything about it
+            _ => return None,
         };
+
         if dec_hash == parsed_seccfg.get_hash() {
             parsed_seccfg.set_algo(algo);
             return Some(parsed_seccfg);
@@ -40,10 +42,8 @@ pub fn parse_seccfg(xml: &mut Xml) -> Option<SecCfgV4> {
 
 pub fn write_seccfg(xml: &mut Xml, seccfg: &mut SecCfgV4) -> Option<[u8; 512]> {
     let enc_hash = match seccfg.get_algo() {
-        Some(SecCfgV4Algo::SW) => sej(xml, &seccfg.get_hash(), true, false, false, false).ok()?,
-        Some(SecCfgV4Algo::HW) => sej(xml, &seccfg.get_hash(), true, false, true, true).ok()?,
-        Some(SecCfgV4Algo::HWv3) => sej(xml, &seccfg.get_hash(), true, true, true, false).ok()?,
-        Some(SecCfgV4Algo::HWv4) => sej(xml, &seccfg.get_hash(), true, false, true, false).ok()?,
+        Some(SecCfgV4Algo::SW) => sej(xml, &seccfg.get_hash(), true, false).ok()?,
+        Some(SecCfgV4Algo::HWv4) => sej(xml, &seccfg.get_hash(), true, true).ok()?,
         _ => return None,
     };
 
