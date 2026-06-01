@@ -5,10 +5,11 @@
 use std::io::{Cursor, Read, Write};
 
 use log::{debug, error, info};
-use wincode::{SchemaRead, SchemaWrite};
+use wincode::SchemaWrite;
 
 use crate::connection::Connection;
 use crate::connection::port::ConnectionType;
+use crate::core::ToBytes;
 use crate::core::devinfo::DeviceInfo;
 use crate::core::seccfg::LockFlag;
 use crate::core::storage::{
@@ -43,7 +44,7 @@ use crate::error::{Error, Result, XFlashError};
 use crate::exploit::{Carbonara, Exploit, Kamakiri};
 use crate::{exploit, le_u32};
 
-#[derive(SchemaRead, SchemaWrite)]
+#[derive(SchemaWrite, ToBytes)]
 struct RebootParams {
     /// If set, the device will reboot into the
     /// specified bootup mode.
@@ -182,12 +183,9 @@ impl DownloadProtocol for XFlash {
             not_disconnect_usb: 0,
         };
 
-        let mut buf = [0u8; 28];
-        wincode::serialize_into(&mut buf[..], &params)?;
-
         info!("Shutting down device...");
 
-        self.send(&buf)?;
+        self.send(&params.to_bytes())?;
 
         self.conn.port.close().ok();
         Ok(())
@@ -213,12 +211,9 @@ impl DownloadProtocol for XFlash {
             not_disconnect_usb: 0,
         };
 
-        let mut buf = [0u8; 28];
-        wincode::serialize_into(&mut buf[..], &params)?;
-
         info!("Rebooting device into {:?} mode...", bootmode);
 
-        self.send(&buf)?;
+        self.send(&params.to_bytes())?;
 
         self.conn.port.close().ok();
         Ok(())

@@ -5,7 +5,7 @@
 use std::io::{Read, Write};
 
 use log::{debug, error, info, trace, warn};
-use wincode::{SchemaRead, SchemaWrite};
+use wincode::SchemaWrite;
 
 use crate::connection::Connection;
 use crate::connection::port::ConnectionType;
@@ -14,6 +14,7 @@ use crate::core::devinfo::DeviceInfo;
 use crate::core::emi::extract_emi_settings;
 use crate::core::log_buffer::DeviceLog;
 use crate::core::storage::StorageKind;
+use crate::core::traits::ToBytes;
 use crate::da::protocol::{DAProtocolParams, DataType, PacketHeader};
 use crate::da::xflash::cmds::*;
 #[cfg(not(feature = "no_exploits"))]
@@ -23,7 +24,7 @@ use crate::da::{DA, DownloadProtocol};
 use crate::error::{Error, Result, XFlashError};
 use crate::le_u32;
 
-#[derive(SchemaRead, SchemaWrite)]
+#[derive(SchemaWrite, ToBytes)]
 struct EnvParams {
     da_log_level: u32,
     log_channel: u32,
@@ -184,10 +185,7 @@ impl XFlash {
         let env_params =
             EnvParams { da_log_level, log_channel, system_os: 1, ufs_provision: 0, reserved: 0 };
 
-        let mut env_buf = [0u8; 20];
-        wincode::serialize_into(&mut env_buf[..], &env_params)?;
-
-        self.send_data(&[&(Cmd::SetupEnvironment as u32).to_le_bytes(), &env_buf])?;
+        self.send_data(&[&(Cmd::SetupEnvironment as u32).to_le_bytes(), &env_params.to_bytes()])?;
 
         self.send_data(&[&(Cmd::SetupHwInitParams as u32).to_le_bytes(), &[0u8; 4]])?;
 
@@ -384,12 +382,9 @@ impl XFlash {
     }
 
     pub(super) fn handle_sla(&mut self) -> Result<bool> {
-        let resp = match self.devctrl(Cmd::SlaEnabledStatus, None) {
-            Ok(r) => r,
-            Err(_) => {
-                // The CMD might not be supported on some devices, so we just assume SLA is disabled
-                return Ok(true);
-            }
+        let Ok(resp) = self.devctrl(Cmd::SlaEnabledStatus, None) else {
+            // The CMD might not be supported on some devices, so we just assume SLA is disabled
+            return Ok(true);
         };
 
         let sla_enabled = le_u32!(resp, 0) != 0;
