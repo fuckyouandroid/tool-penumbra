@@ -5,13 +5,12 @@
 
 use std::io::{Read, Write};
 
-use log::{error, info, warn};
+use log::{info, warn};
 
 use crate::connection::Connection;
 use crate::connection::port::{ConnectionType, MTKPort};
 use crate::core::bootctrl::{BootControl, OFFSET_SLOT_SUFFIX};
 use crate::core::chip::{ChipInfo, chip_from_hw_code};
-use crate::core::crypto::config::CryptoIO;
 use crate::core::devinfo::{DevInfoData, DeviceInfo};
 use crate::core::log_buffer::DeviceLog;
 use crate::core::seccfg::LockFlag;
@@ -1025,33 +1024,5 @@ impl Device {
 
         let protocol = self.protocol.as_mut().unwrap();
         protocol.auth_rpmb(region, key)
-    }
-}
-
-impl CryptoIO for Device {
-    fn read32(&mut self, addr: u32) -> u32 {
-        let Some(protocol) = self.get_protocol() else {
-            error!("No protocol available for read32 at 0x{:08X}!", addr);
-            return 0;
-        };
-
-        match protocol.read32(addr) {
-            Ok(val) => val,
-            Err(e) => {
-                error!("Failed to read32 from protocol at 0x{:08X}: {}", addr, e);
-                0
-            }
-        }
-    }
-
-    fn write32(&mut self, addr: u32, val: u32) {
-        let Some(protocol) = self.get_protocol() else {
-            error!("No protocol available for write32 at 0x{:08X}!", addr);
-            return;
-        };
-
-        if let Err(e) = protocol.write32(addr, val) {
-            error!("Failed to write32 to protocol at 0x{:08X}: {}", addr, e);
-        }
     }
 }
