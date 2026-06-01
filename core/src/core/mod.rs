@@ -11,3 +11,6 @@ pub mod emi;
 pub mod log_buffer;
 pub mod seccfg;
 pub mod storage;
+pub mod traits;
+
+pub use traits::{FromBytes, ToBytes};
