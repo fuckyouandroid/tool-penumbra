@@ -14,6 +14,7 @@ use crate::core::chip::ChipInfo;
 use crate::core::devinfo::DeviceInfo;
 use crate::core::seccfg::LockFlag;
 use crate::core::storage::{Partition, PartitionKind, RpmbRegion, StorageKind, StorageType};
+use crate::core::{FromBytes, ToBytes};
 use crate::da::{DA, DAEntryRegion, XFlash, Xml};
 use crate::error::Result;
 
@@ -71,7 +72,7 @@ impl DataType {
 /// For `Message` packets, the payload starts with a 4 byte priority
 /// field followed by the actual message body.
 /// The length of a `Message` packet also includes the 4 byte from priority.
-#[derive(Debug, Clone, Copy, SchemaRead, SchemaWrite)]
+#[derive(Debug, Clone, Copy, SchemaRead, SchemaWrite, ToBytes)]
 pub struct PacketHeader {
     pub magic: u32,
     pub data_type: DataType,
@@ -97,14 +98,19 @@ impl PacketHeader {
 
         Some(hdr)
     }
+}
 
-    pub fn to_bytes(&self) -> [u8; Self::SIZE] {
-        let mut buf = [0u8; Self::SIZE];
+impl FromBytes for PacketHeader {
+    const SIZE: usize = size_of::<Self>();
 
-        // This will never fail, so it's safe to unwrap.
-        wincode::serialize_into(&mut buf[..], self).unwrap();
+    fn from_bytes(raw: &[u8]) -> Option<Self> {
+        let hdr = Self::from_bytes(raw)?;
 
-        buf
+        if hdr.magic != MAGIC {
+            return None;
+        }
+
+        Some(hdr)
     }
 }
 
