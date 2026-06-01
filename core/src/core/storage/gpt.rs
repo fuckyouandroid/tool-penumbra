@@ -70,7 +70,7 @@ pub struct Gpt {
 impl Gpt {
     pub fn parse(data: &[u8]) -> Result<Self> {
         let (gpt_type, header_offset) =
-            Self::detect_type(data).ok_or(Error::penumbra("No valid GPT header found!"))?;
+            Self::detect_type(data).ok_or_else(|| Error::penumbra("No valid GPT header found!"))?;
 
         let mut header = GptHeader::deserialize(&data[header_offset..])?;
         header.sector_size = header_offset;

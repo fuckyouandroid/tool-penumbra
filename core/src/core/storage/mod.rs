@@ -29,10 +29,10 @@ impl TryFrom<u8> for RpmbRegion {
 
     fn try_from(value: u8) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(RpmbRegion::R1),
-            1 => Ok(RpmbRegion::R2),
-            2 => Ok(RpmbRegion::R3),
-            3 => Ok(RpmbRegion::R4),
+            0 => Ok(Self::R1),
+            1 => Ok(Self::R2),
+            2 => Ok(Self::R3),
+            3 => Ok(Self::R4),
             _ => Err("Invalid RPMB region"),
         }
     }
@@ -67,19 +67,19 @@ impl Partition {
 }
 
 impl PartitionKind {
-    pub fn as_u32(&self) -> u32 {
+    pub const fn as_u32(&self) -> u32 {
         match self {
-            PartitionKind::Emmc(part) => *part as u32,
-            PartitionKind::Ufs(part) => *part as u32,
-            PartitionKind::Unknown => 0,
+            Self::Emmc(part) => *part as u32,
+            Self::Ufs(part) => *part as u32,
+            Self::Unknown => 0,
         }
     }
 
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
-            PartitionKind::Emmc(part) => part.as_str(),
-            PartitionKind::Ufs(part) => part.as_str(),
-            PartitionKind::Unknown => "Unknown",
+            Self::Emmc(part) => part.as_str(),
+            Self::Ufs(part) => part.as_str(),
+            Self::Unknown => "Unknown",
         }
     }
 }
@@ -93,6 +93,10 @@ pub enum StorageKind {
 
 #[enum_dispatch]
 pub trait Storage {
+    fn as_str(&self) -> &'static str {
+        "Unknown"
+    }
+
     fn kind(&self) -> StorageType;
     fn block_size(&self) -> u32;
     fn total_size(&self) -> u64;

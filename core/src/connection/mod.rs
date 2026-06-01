@@ -28,7 +28,7 @@ impl Connection {
         let connection_type = port.get_connection_type();
         let baudrate = port.get_baudrate();
 
-        Connection { port, connection_type, baudrate }
+        Self { port, connection_type, baudrate }
     }
 
     // Writes the provided data to the device

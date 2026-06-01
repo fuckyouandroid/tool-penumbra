@@ -43,7 +43,7 @@ pub struct SlotMetadata {
 
 impl Default for SlotMetadata {
     fn default() -> Self {
-        SlotMetadata::new(BOOTCTRL_MAX_PRIORITY, BOOTCTRL_MAX_RETRY, u1::new(0), u1::new(0))
+        Self::new(BOOTCTRL_MAX_PRIORITY, BOOTCTRL_MAX_RETRY, u1::new(0), u1::new(0))
     }
 }
 
@@ -121,7 +121,7 @@ impl Default for BootControl {
 
 impl BootControl {
     pub fn parse(data: &[u8]) -> Option<Self> {
-        let bctrl = BootControl::deserialize(data).ok()?;
+        let bctrl = Self::deserialize(data).ok()?;
         if bctrl.is_valid() { Some(bctrl) } else { None }
     }
 
@@ -142,7 +142,7 @@ impl BootControl {
         self.crc = self.compute_crc();
     }
 
-    pub fn get_slot(&self, slot: BootPartition) -> &SlotMetadata {
+    pub const fn get_slot(&self, slot: BootPartition) -> &SlotMetadata {
         match slot {
             BootPartition::A => &self.slots[0],
             BootPartition::B => &self.slots[1],

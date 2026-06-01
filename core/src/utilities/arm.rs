@@ -38,11 +38,11 @@ macro_rules! extract_ptr {
     }};
 }
 
-pub fn to_thumb_addr(pos: usize, base_addr: u32) -> u32 {
+pub const fn to_thumb_addr(pos: usize, base_addr: u32) -> u32 {
     ((pos as u32) + base_addr) | 1
 }
 
-pub fn encode_bl(src: u32, dst: u32) -> u32 {
+pub const fn encode_bl(src: u32, dst: u32) -> u32 {
     let off = dst as i32 - (src as i32 + 4);
     let hi = ((off >> 12) & 0x7FF) as u16;
     let lo = ((off >> 1) & 0x7FF) as u16;

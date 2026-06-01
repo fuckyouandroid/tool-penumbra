@@ -27,11 +27,11 @@ pub enum FileSystemOp {
 impl FileSystemOp {
     pub fn default(&self) -> String {
         match self {
-            FileSystemOp::MkDir => "MKDIR\u{0}".to_string(),
-            FileSystemOp::Exists => "NOT-EXISTS\u{0}".to_string(), // To avoid more reads
-            FileSystemOp::FileSize(size) => format!("{:X}", size),
-            FileSystemOp::RemoveAll => "REMOVE-ALL\u{0}".to_string(),
-            FileSystemOp::Remove => "REMOVE\u{0}".to_string(),
+            Self::MkDir => "MKDIR\u{0}".to_string(),
+            Self::Exists => "NOT-EXISTS\u{0}".to_string(), // To avoid more reads
+            Self::FileSize(size) => format!("{:X}", size),
+            Self::RemoveAll => "REMOVE-ALL\u{0}".to_string(),
+            Self::Remove => "REMOVE\u{0}".to_string(),
         }
     }
 }

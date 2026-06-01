@@ -5,8 +5,8 @@
 use std::io::{Cursor, Read, Write};
 
 use log::{debug, info};
-use wincode::SchemaWrite;
 
+use super::structs::{DACtx, ExtPointerTable, SejParams};
 use crate::core::ToBytes;
 use crate::core::storage::{RPMB_FRAME_DATA_SZ, RpmbRegion, Storage};
 use crate::da::DownloadProtocol;
@@ -14,84 +14,11 @@ use crate::da::xflash::{Cmd, XFlash};
 use crate::error::{Error, Result};
 use crate::le_u32;
 use crate::utilities::analysis::{Arch, create_analyzer};
-use crate::utilities::patching::{bytes_to_hex, patch_pattern_str};
 
 const DA_EXT: &[u8] = include_bytes!("../../../payloads/da_x.bin");
 // Won't go faster, and bigger packets makes the device hang
 const RPMB_WRITE_PKT_LEN: usize = 32 * 1024;
 const POINTER_TABLE_MAGIC: u32 = 0x54525450;
-
-#[derive(SchemaWrite, ToBytes)]
-#[repr(C)]
-struct ExtPointerTable {
-    magic: u32,
-    uart_base: u32,
-    reg_devc: u32,
-    malloc: u32,
-    free: u32,
-    mmc_get_card: u32,
-}
-
-#[repr(C)]
-#[derive(SchemaWrite, ToBytes)]
-struct DACtx {
-    sej_base: u32,
-    tzcc_base: u32,
-    da2_base: u32,
-    da2_size: u32,
-    write_pkt_len: u32,
-    read_pkt_len: u32,
-    storage_type: u32,
-    usb_log: u32,
-}
-
-#[derive(SchemaWrite, ToBytes)]
-pub struct SejParams {
-    /// Length of the data to encrypt.
-    pub length: u32,
-    /// Whether to encrypt or decrypt the data.
-    pub encrypt: bool,
-    /// Wether to use HW encryption or SW.
-    pub anti_clone: bool,
-    /// Used in Legacy HW encryption.
-    pub xor: bool,
-    /// Use legacy SEJ HW encryption
-    pub legacy: bool,
-    /// Whether to perform CBC or ECB encryption.
-    pub cbc: bool,
-    /// The key to use for encryption:
-    /// 0: SW Key
-    /// 1: HW Key
-    /// 2: HW Wrapped Key
-    /// 3: RID Key
-    /// 4: Custom Key
-    /// 5-255: Fallback to SW key
-    /// When anti_clone is enabled, this will be
-    /// ignored by SEJ
-    pub key_id: u8,
-    /// What key size to use:
-    /// 0: 128-bit key
-    /// 1: 192-bit key
-    /// 2: 256-bit key
-    pub key_sz: u8,
-    reserved: u8,
-}
-
-impl Default for SejParams {
-    fn default() -> Self {
-        Self {
-            length: 0,
-            encrypt: false,
-            anti_clone: false,
-            xor: false,
-            legacy: false,
-            cbc: true,
-            key_id: 0,
-            key_sz: 2,
-            reserved: 0,
-        }
-    }
-}
 
 pub fn boot_extensions(xflash: &mut XFlash) -> Result<bool> {
     debug!("Trying booting XFlash extensions...");
@@ -108,7 +35,7 @@ pub fn boot_extensions(xflash: &mut XFlash) -> Result<bool> {
     let ext_size = ext_data.len() as u32;
 
     info!("Uploading DA extensions to 0x{:08X} (0x{:X} bytes)", ext_addr, ext_size);
-    if let Err(_) = xflash.boot_to(ext_addr, &ext_data) {
+    if xflash.boot_to(ext_addr, &ext_data).is_err() {
         // If DA extensions fail to upload, we just return false, not a fatal error
         info!("Failed to upload DA extensions, continuing without extensions");
         return Ok(false);
@@ -277,14 +204,14 @@ pub fn sej(
     anti_clone: bool,
     xor: bool,
 ) -> Result<Vec<u8>> {
-    let mut params = SejParams::default();
-
-    params.encrypt = encrypt;
-    params.legacy = legacy;
-    params.anti_clone = anti_clone;
-    params.xor = xor;
-
-    params.length = data.len() as u32;
+    let params = SejParams {
+        encrypt,
+        legacy,
+        anti_clone,
+        xor,
+        length: data.len() as u32,
+        ..Default::default()
+    };
 
     xflash.devctrl(Cmd::ExtSej, Some(&[&params.to_bytes()]))?;
 

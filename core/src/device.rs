@@ -89,13 +89,13 @@ impl DeviceBuilder {
     }
 
     /// Enables verbose logging mode.
-    pub fn with_verbose(mut self, verbose: bool) -> Self {
+    pub const fn with_verbose(mut self, verbose: bool) -> Self {
         self.verbose = verbose;
         self
     }
 
     /// Enable USB logging
-    pub fn with_usb_log_channel(mut self, enabled: bool) -> Self {
+    pub const fn with_usb_log_channel(mut self, enabled: bool) -> Self {
         self.usb_log_channel = enabled;
         self
     }
@@ -359,7 +359,7 @@ impl Device {
     }
 
     /// Returns a reference to the device log buffer
-    pub fn device_log(&self) -> &DeviceLog {
+    pub const fn device_log(&self) -> &DeviceLog {
         &self.device_log
     }
 
@@ -384,7 +384,7 @@ impl Device {
 
     /// Gets a mutable reference to the DA protocol handler, if available.
     /// Returns `None` if the device is not in DA mode.
-    pub fn get_protocol(&mut self) -> Option<&mut DAProtocol> {
+    pub const fn get_protocol(&mut self) -> Option<&mut DAProtocol> {
         self.protocol.as_mut()
     }
 

@@ -17,7 +17,7 @@ const DA_MAGIC: &[u8] = b"MTK_DOWNLOAD_AGENT";
 /// - Legacy: Old DA, used in old devices
 /// - V5 (XFlash): Used mainly in early Dimensity devices and most Helio devices
 /// - V6 (XML): Newest protocol, used in most recent Dimensity and Helio devices
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DAType {
     Legacy,
     V5,
@@ -73,7 +73,7 @@ pub struct DAFile {
 }
 
 impl DAFile {
-    pub fn parse_da(raw_data: &[u8]) -> Result<DAFile> {
+    pub fn parse_da(raw_data: &[u8]) -> Result<Self> {
         if raw_data.len() < 0x6C + 0xDC {
             return Err(Error::penumbra("Invalid DA file, too small"));
         }
@@ -163,7 +163,7 @@ impl DAFile {
             );
         }
 
-        Ok(DAFile { da_raw_data: raw_data.to_vec(), da_type, das })
+        Ok(Self { da_raw_data: raw_data.to_vec(), da_type, das })
     }
 
     // TODO: Make an Hashmap, possibly also including other info about a chip

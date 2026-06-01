@@ -11,7 +11,7 @@ pub struct Thumb2Analyzer {
 }
 
 impl Thumb2Analyzer {
-    pub fn new(data: Vec<u8>, base_addr: u64) -> Self {
+    pub const fn new(data: Vec<u8>, base_addr: u64) -> Self {
         Self { data, base_addr }
     }
 
@@ -29,19 +29,17 @@ impl Thumb2Analyzer {
     }
 
     fn is_wide_instruction(&self, offset: usize) -> bool {
-        if let Some(hw) = self.read_u16(offset) {
+        self.read_u16(offset).is_some_and(|hw| {
             let top5 = hw >> 11;
             top5 == 0b11101 || top5 == 0b11110 || top5 == 0b11111
-        } else {
-            false
-        }
+        })
     }
 
     fn instruction_size(&self, offset: usize) -> usize {
         if self.is_wide_instruction(offset) { 4 } else { 2 }
     }
 
-    pub fn decode_movw(&self, instr: u32) -> Option<(u8, u32)> {
+    pub const fn decode_movw(&self, instr: u32) -> Option<(u8, u32)> {
         if (instr & 0xFBF08000) != 0xF2400000 {
             return None;
         }
@@ -57,7 +55,7 @@ impl Thumb2Analyzer {
         Some((rd, imm16))
     }
 
-    pub fn decode_movt(&self, instr: u32) -> Option<(u8, u32)> {
+    pub const fn decode_movt(&self, instr: u32) -> Option<(u8, u32)> {
         if (instr & 0xFBF08000) != 0xF2C00000 {
             return None;
         }
@@ -73,7 +71,7 @@ impl Thumb2Analyzer {
         Some((rd, imm16))
     }
 
-    pub fn decode_sub_reg(&self, instr: u32) -> Option<(u8, u8, u8)> {
+    pub const fn decode_sub_reg(&self, instr: u32) -> Option<(u8, u8, u8)> {
         if (instr & 0xFFE0F0F0) != 0xEBA00000 {
             return None;
         }
@@ -89,7 +87,7 @@ impl Thumb2Analyzer {
         self.read_u16(offset) == Some(0x4770)
     }
 
-    fn decode_ldr_pc(&self, instr: u32, pc: u64) -> Option<(u8, u64)> {
+    const fn decode_ldr_pc(&self, instr: u32, pc: u64) -> Option<(u8, u64)> {
         if (instr & 0xFF7F0000) != 0xF85F0000 {
             return None;
         }
@@ -108,7 +106,7 @@ impl Thumb2Analyzer {
         Some((rt, target))
     }
 
-    fn decode_bl(&self, instr: u32, pc: u64) -> Option<u64> {
+    const fn decode_bl(&self, instr: u32, pc: u64) -> Option<u64> {
         let hw1 = instr >> 16;
         let hw2 = instr & 0xFFFF;
 
@@ -147,7 +145,7 @@ impl Thumb2Analyzer {
         Some((pc + 4).wrapping_add(offset as u64))
     }
 
-    fn decode_mov(&self, hw: u16) -> Option<(u8, u8)> {
+    const fn decode_mov(&self, hw: u16) -> Option<(u8, u8)> {
         if (hw & 0xFF00) != 0x4600 {
             return None;
         }
@@ -280,7 +278,7 @@ impl Thumb2Analyzer {
         None
     }
 
-    fn is_movw_imm(&self, instr: u32, imm16: u16) -> bool {
+    const fn is_movw_imm(&self, instr: u32, imm16: u16) -> bool {
         if let Some((_, decoded)) = self.decode_movw(instr) {
             decoded == imm16 as u32
         } else {
@@ -288,7 +286,7 @@ impl Thumb2Analyzer {
         }
     }
 
-    fn is_movt_imm(&self, instr: u32, imm16: u16) -> bool {
+    const fn is_movt_imm(&self, instr: u32, imm16: u16) -> bool {
         if let Some((_, decoded)) = self.decode_movt(instr) {
             decoded == imm16 as u32
         } else {
@@ -296,11 +294,11 @@ impl Thumb2Analyzer {
         }
     }
 
-    fn get_movw_reg(&self, instr: u32) -> u8 {
+    const fn get_movw_reg(&self, instr: u32) -> u8 {
         ((instr >> 8) & 0xF) as u8
     }
 
-    fn get_movt_reg(&self, instr: u32) -> u8 {
+    const fn get_movt_reg(&self, instr: u32) -> u8 {
         ((instr >> 8) & 0xF) as u8
     }
 
@@ -382,7 +380,7 @@ impl Thumb2Analyzer {
         None
     }
 
-    fn iter_instructions_from(&self, start: usize) -> Thumb2InstrIter<'_> {
+    const fn iter_instructions_from(&self, start: usize) -> Thumb2InstrIter<'_> {
         Thumb2InstrIter { analyzer: self, offset: start }
     }
 }

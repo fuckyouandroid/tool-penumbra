@@ -31,12 +31,12 @@ pub enum BootMode {
 }
 
 impl BootMode {
-    pub fn to_text(&self) -> Option<&'static str> {
+    pub const fn to_text(&self) -> Option<&'static str> {
         match self {
-            BootMode::Fastboot => Some("FASTBOOT"),
-            BootMode::Meta => Some("META"),
-            BootMode::Test => Some("ANDROID-TEST-MODE"),
-            BootMode::Normal | BootMode::HomeScreen => None,
+            Self::Fastboot => Some("FASTBOOT"),
+            Self::Meta => Some("META"),
+            Self::Test => Some("ANDROID-TEST-MODE"),
+            Self::Normal | Self::HomeScreen => None,
         }
     }
 }
@@ -51,10 +51,10 @@ pub enum DataType {
 }
 
 impl DataType {
-    pub fn from_u32(v: u32) -> Option<Self> {
+    pub const fn from_u32(v: u32) -> Option<Self> {
         match v {
-            0x1 => Some(DataType::Flow),
-            0x2 => Some(DataType::Message),
+            0x1 => Some(Self::Flow),
+            0x2 => Some(Self::Message),
             _ => None,
         }
     }
@@ -82,7 +82,7 @@ pub struct PacketHeader {
 impl PacketHeader {
     pub const SIZE: usize = size_of::<Self>();
 
-    pub fn new(length: u32) -> Self {
+    pub const fn new(length: u32) -> Self {
         Self { magic: MAGIC, data_type: DataType::Flow, length }
     }
 

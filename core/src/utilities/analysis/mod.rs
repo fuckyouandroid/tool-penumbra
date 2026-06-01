@@ -20,8 +20,8 @@ pub enum Arch {
 }
 
 impl Arch {
-    pub fn is_arm64(self) -> bool {
-        matches!(self, Arch::Aarch64)
+    pub const fn is_arm64(self) -> bool {
+        matches!(self, Self::Aarch64)
     }
 }
 

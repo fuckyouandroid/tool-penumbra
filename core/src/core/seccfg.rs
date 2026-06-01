@@ -48,8 +48,8 @@ pub struct SecCfgV4 {
 }
 
 impl SecCfgV4 {
-    pub fn new() -> Self {
-        SecCfgV4 {
+    pub const fn new() -> Self {
+        Self {
             start_magic: V4_MAGIC_BEGIN,
             seccfg_ver: 4,
             seccfg_size: 20,
@@ -62,12 +62,12 @@ impl SecCfgV4 {
         }
     }
 
-    pub fn parse_header(data: &[u8]) -> Result<SecCfgV4> {
+    pub fn parse_header(data: &[u8]) -> Result<Self> {
         if data.len() < 0x20 {
             return Err(Error::penumbra("SecCfg v4 data too short"));
         }
 
-        Ok(SecCfgV4::deserialize(data)?)
+        Ok(Self::deserialize(data)?)
     }
 
     pub fn get_hash(&self) -> [u8; 32] {
@@ -86,19 +86,19 @@ impl SecCfgV4 {
         self.algo.clone()
     }
 
-    pub fn set_algo(&mut self, algo: SecCfgV4Algo) {
+    pub const fn set_algo(&mut self, algo: SecCfgV4Algo) {
         self.algo = Some(algo);
     }
 
-    pub fn set_encrypted_hash(&mut self, enc_hash: [u8; 32]) {
+    pub const fn set_encrypted_hash(&mut self, enc_hash: [u8; 32]) {
         self.enc_hash = enc_hash;
     }
 
-    pub fn get_encrypted_hash(&self) -> [u8; 32] {
+    pub const fn get_encrypted_hash(&self) -> [u8; 32] {
         self.enc_hash
     }
 
-    pub fn set_lock_state(&mut self, lock_flag: LockFlag) {
+    pub const fn set_lock_state(&mut self, lock_flag: LockFlag) {
         match lock_flag {
             LockFlag::Lock => {
                 self.lock_state = 4;

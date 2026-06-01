@@ -16,7 +16,7 @@ use crate::utilities::hash::hash;
 use crate::utilities::patching::*;
 
 /// Patches both DA1 and DA2, specific for V5 DA
-pub fn patch_da(xflash: &mut XFlash) -> Result<DA> {
+pub fn patch_da(xflash: &XFlash) -> Result<DA> {
     let da2 = patch_da2(xflash)?;
     let mut da1 = patch_da1(xflash)?;
 
@@ -31,7 +31,7 @@ pub fn patch_da(xflash: &mut XFlash) -> Result<DA> {
             let original_da = &xflash.da;
             let da = DA {
                 da_type: xflash.da.da_type,
-                regions: vec![original_da.regions[0].clone(), da1.clone(), da2.clone()],
+                regions: vec![original_da.regions[0].clone(), da1.clone(), da2],
                 magic: original_da.magic,
                 hw_code: original_da.hw_code,
                 hw_sub_code: original_da.hw_sub_code,
@@ -46,14 +46,14 @@ pub fn patch_da(xflash: &mut XFlash) -> Result<DA> {
 }
 
 /// Patches only DA1, specific for V5 DA
-pub fn patch_da1(xflash: &mut XFlash) -> Result<DAEntryRegion> {
+pub fn patch_da1(xflash: &XFlash) -> Result<DAEntryRegion> {
     let mut da1 = xflash.da.get_da1().cloned().unwrap();
     patch_anti_rollback(&mut da1, "DA1")?;
     Ok(da1)
 }
 
 /// Patches only DA2, specific for V5 DA
-pub fn patch_da2(xflash: &mut XFlash) -> Result<DAEntryRegion> {
+pub fn patch_da2(xflash: &XFlash) -> Result<DAEntryRegion> {
     let mut da2 = xflash.da.get_da2().cloned().unwrap();
 
     let analyzer = Thumb2Analyzer::new(da2.data.clone(), da2.addr as u64);

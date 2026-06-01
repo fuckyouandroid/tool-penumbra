@@ -5,8 +5,8 @@
 use std::io::{Read, Write};
 
 use log::{debug, error, info, trace, warn};
-use wincode::SchemaWrite;
 
+use super::structs::EnvParams;
 use crate::connection::Connection;
 use crate::connection::port::ConnectionType;
 use crate::core::auth::{AuthManager, SignData, SignPurpose, SignRequest};
@@ -23,15 +23,6 @@ use crate::da::xflash::storage::detect_storage;
 use crate::da::{DA, DownloadProtocol};
 use crate::error::{Error, Result, XFlashError};
 use crate::le_u32;
-
-#[derive(SchemaWrite, ToBytes)]
-struct EnvParams {
-    da_log_level: u32,
-    log_channel: u32,
-    system_os: u32,
-    ufs_provision: u32,
-    reserved: u32,
-}
 
 pub struct XFlash {
     pub conn: Connection,
@@ -55,7 +46,7 @@ impl XFlash {
     }
 
     pub fn new(conn: Connection, params: DAProtocolParams) -> Self {
-        XFlash {
+        Self {
             conn,
             da: params.da,
             pl: params.preloader,
@@ -296,14 +287,11 @@ impl XFlash {
             let to_read = remaining.min(chunk_size);
 
             let bytes_read = reader.read(&mut buffer[..to_read])?;
-            let chunk = if bytes_read == 0 {
-                &buffer[..to_read]
-            } else if bytes_read < to_read {
+            if bytes_read < to_read {
                 buffer[bytes_read..to_read].fill(0);
-                &buffer[..to_read]
-            } else {
-                &buffer[..to_read]
-            };
+            }
+
+            let chunk = &buffer[..to_read];
 
             // DA expects a checksum of the data chunk before the actual data
             // The actual checksum is a additive 16-bit checksum (Good job MTK!!)
@@ -395,10 +383,7 @@ impl XFlash {
 
         info!("DA SLA is enabled");
 
-        let da2_data = match self.da.get_da2() {
-            Some(da2) => da2.data.clone(),
-            None => Vec::new(),
-        };
+        let da2_data = self.da.get_da2().map_or_else(Vec::new, |da2| da2.data.clone());
 
         let auth = AuthManager::get();
         if !auth.can_sign(&da2_data) {

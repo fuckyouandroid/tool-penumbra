@@ -54,7 +54,7 @@ pub struct Xml {
 
 impl Xml {
     pub fn new(conn: Connection, params: DAProtocolParams) -> Self {
-        Xml {
+        Self {
             conn,
             da: params.da,
             dev_info: params.devinfo,
@@ -446,10 +446,7 @@ impl Xml {
 
         info!("DA SLA is enabled");
 
-        let da2_data = match self.da.get_da2() {
-            Some(da2) => da2.data.clone(),
-            None => Vec::new(),
-        };
+        let da2_data = self.da.get_da2().map_or_else(Vec::new, |da2| da2.data.clone());
 
         let auth = AuthManager::get();
         let progress = |_, _| {};

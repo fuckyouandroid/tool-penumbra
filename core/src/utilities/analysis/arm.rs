@@ -11,13 +11,13 @@ pub struct ArmAnalyzer {
 }
 
 impl ArmAnalyzer {
-    pub fn new(data: Vec<u8>, base_addr: u64) -> Self {
+    pub const fn new(data: Vec<u8>, base_addr: u64) -> Self {
         Self { data, base_addr }
     }
 
     /// Decodes MOVW instruction.
     /// Returns (register, imm16)
-    pub fn decode_movw(&self, instr: u32) -> Option<(u8, u32)> {
+    pub const fn decode_movw(&self, instr: u32) -> Option<(u8, u32)> {
         // MOVW: cond 0011 0000 imm4 Rd imm12
         // Encoding: 0xE30xxxxx
         if (instr & 0x0FF00000) != 0x03000000 {
@@ -34,7 +34,7 @@ impl ArmAnalyzer {
 
     /// Decodes MOVT instruction.
     /// Returns (register, imm16)
-    pub fn decode_movt(&self, instr: u32) -> Option<(u8, u32)> {
+    pub const fn decode_movt(&self, instr: u32) -> Option<(u8, u32)> {
         // MOVT: cond 0011 0100 imm4 Rd imm12
         // Encoding: 0xE34xxxxx
         if (instr & 0x0FF00000) != 0x03400000 {
@@ -52,7 +52,7 @@ impl ArmAnalyzer {
     /// Decodes SUB register instruction.
     /// SUB Rd, Rn, Rm
     /// Returns (Rn, Rm, Rd)
-    pub fn decode_sub_reg(&self, instr: u32) -> Option<(u8, u8, u8)> {
+    pub const fn decode_sub_reg(&self, instr: u32) -> Option<(u8, u8, u8)> {
         // SUB (register): cond 0000 010S nnnn dddd 0000 0000 mmmm
         if (instr & 0x0FE00FF0) != 0x00400000 {
             return None;
@@ -66,12 +66,12 @@ impl ArmAnalyzer {
     }
 
     /// Checks if instruction is BX LR (return)
-    pub fn is_bx_lr(&self, instr: u32) -> bool {
+    pub const fn is_bx_lr(&self, instr: u32) -> bool {
         // BX LR: 0xE12FFF1E
         (instr & 0x0FFFFFFF) == 0x012FFF1E
     }
 
-    fn decode_ldr_pc(&self, instr: u32, pc: u64) -> Option<(u8, u64)> {
+    const fn decode_ldr_pc(&self, instr: u32, pc: u64) -> Option<(u8, u64)> {
         if (instr & 0x0C5F0000) != 0x041F0000 {
             return None;
         }
@@ -90,7 +90,7 @@ impl ArmAnalyzer {
         Some((rd, target_addr))
     }
 
-    fn decode_bl(&self, instr: u32, pc: u64) -> Option<u64> {
+    const fn decode_bl(&self, instr: u32, pc: u64) -> Option<u64> {
         let opcode = instr & 0x0F000000;
 
         if opcode != 0x0A000000 && opcode != 0x0B000000 {
@@ -106,7 +106,7 @@ impl ArmAnalyzer {
         Some(arm_pc.wrapping_add((offset * 4) as u64))
     }
 
-    fn decode_mov(&self, instr: u32) -> Option<(u8, u8)> {
+    const fn decode_mov(&self, instr: u32) -> Option<(u8, u8)> {
         if (instr & 0x0FE00FF0) == 0x01A00000 {
             let rd = ((instr >> 12) & 0xF) as u8;
             let rm = (instr & 0xF) as u8;
@@ -115,7 +115,7 @@ impl ArmAnalyzer {
         None
     }
 
-    fn is_prologue(&self, instr: u32) -> bool {
+    const fn is_prologue(&self, instr: u32) -> bool {
         // PUSH with LR: STMDB SP!, {..., LR}
         if (instr & 0xFFFF0000) == 0xE92D0000 && (instr & (1 << 14)) != 0 {
             return true;
@@ -178,7 +178,7 @@ impl ArmAnalyzer {
         None
     }
 
-    fn is_movw_imm(&self, instr: u32, imm16: u16) -> bool {
+    const fn is_movw_imm(&self, instr: u32, imm16: u16) -> bool {
         if (instr & 0x0FF00000) != 0x03000000 {
             return false;
         }
@@ -190,7 +190,7 @@ impl ArmAnalyzer {
         decoded_imm16 == imm16 as u32
     }
 
-    fn is_movt_imm(&self, instr: u32, imm16: u16) -> bool {
+    const fn is_movt_imm(&self, instr: u32, imm16: u16) -> bool {
         if (instr & 0x0FF00000) != 0x03400000 {
             return false;
         }
@@ -202,11 +202,11 @@ impl ArmAnalyzer {
         decoded_imm16 == imm16 as u32
     }
 
-    fn get_movw_reg(&self, instr: u32) -> u8 {
+    const fn get_movw_reg(&self, instr: u32) -> u8 {
         ((instr >> 12) & 0xF) as u8
     }
 
-    fn get_movt_reg(&self, instr: u32) -> u8 {
+    const fn get_movt_reg(&self, instr: u32) -> u8 {
         ((instr >> 12) & 0xF) as u8
     }
 

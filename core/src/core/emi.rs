@@ -9,5 +9,5 @@ use crate::error::{Error, Result};
 pub fn extract_emi_settings(preloader: &[u8]) -> Result<&[u8]> {
     let preloader = Preloader::try_read(preloader)?;
 
-    preloader.emi().ok_or(Error::penumbra("Preloader has no EMI settings."))
+    preloader.emi().ok_or_else(|| Error::penumbra("Preloader has no EMI settings."))
 }

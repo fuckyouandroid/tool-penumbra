@@ -52,7 +52,7 @@ impl LocalKeyring {
             })
             .collect();
 
-        LocalKeyring { keys }
+        Self { keys }
     }
 }
 

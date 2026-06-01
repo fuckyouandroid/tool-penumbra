@@ -66,18 +66,18 @@ pub enum EmmcPartition {
 }
 
 impl EmmcPartition {
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
-            EmmcPartition::Boot1 => "EMMC-BOOT1",
-            EmmcPartition::Boot2 => "EMMC-BOOT2",
-            EmmcPartition::Rpmb => "EMMC-RPMB",
-            EmmcPartition::Gp1 => "EMMC-GP1",
-            EmmcPartition::Gp2 => "EMMC-GP2",
-            EmmcPartition::Gp3 => "EMMC-GP3",
-            EmmcPartition::Gp4 => "EMMC-GP4",
-            EmmcPartition::User => "EMMC-USER",
-            EmmcPartition::End => "EMMC-END",
-            EmmcPartition::Boot1Boot2 => "EMMC-BOOT1BOOT2",
+            Self::Boot1 => "EMMC-BOOT1",
+            Self::Boot2 => "EMMC-BOOT2",
+            Self::Rpmb => "EMMC-RPMB",
+            Self::Gp1 => "EMMC-GP1",
+            Self::Gp2 => "EMMC-GP2",
+            Self::Gp3 => "EMMC-GP3",
+            Self::Gp4 => "EMMC-GP4",
+            Self::User => "EMMC-USER",
+            Self::End => "EMMC-END",
+            Self::Boot1Boot2 => "EMMC-BOOT1BOOT2",
         }
     }
 }
@@ -90,6 +90,10 @@ pub struct EmmcStorage {
 }
 
 impl Storage for EmmcStorage {
+    fn as_str(&self) -> &'static str {
+        "EMMC"
+    }
+
     fn kind(&self) -> StorageType {
         StorageType::Emmc
     }
@@ -144,7 +148,7 @@ impl EmmcStorage {
             return Err(Error::penumbra("Emmc response data too short"));
         }
 
-        let storage = EmmcStorage { info: EmmcInfo::deserialize(data).unwrap() };
+        let storage = Self { info: EmmcInfo::deserialize(data).unwrap() };
 
         Ok(storage)
     }
@@ -165,7 +169,7 @@ impl EmmcStorage {
         let mut cid = [0u8; 16];
         hex::decode_to_slice(cid_str, &mut cid)?;
 
-        Ok(EmmcStorage {
+        Ok(Self {
             info: EmmcInfo {
                 kind: 0x1,
                 block_size,

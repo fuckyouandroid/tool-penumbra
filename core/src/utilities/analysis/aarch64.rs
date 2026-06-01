@@ -11,7 +11,7 @@ pub struct Aarch64Analyzer {
 }
 
 impl Aarch64Analyzer {
-    pub fn new(data: Vec<u8>, base_addr: u64) -> Self {
+    pub const fn new(data: Vec<u8>, base_addr: u64) -> Self {
         Self { data, base_addr }
     }
 
@@ -24,7 +24,7 @@ impl Aarch64Analyzer {
     /// * immhi = bits [23:5]
     ///
     /// Returns (page_address, destination_register)
-    pub fn decode_adrp(&self, instr: u32, pc: u64) -> Option<(u64, u8)> {
+    pub const fn decode_adrp(&self, instr: u32, pc: u64) -> Option<(u64, u8)> {
         if (instr & 0x9F000000) != 0x90000000 {
             return None;
         }
@@ -47,7 +47,7 @@ impl Aarch64Analyzer {
     /// Encoding: 0x91000000 | (shift << 22) | (imm12 << 10) | (Rn << 5) | Rd
     ///
     /// Returns (source_register, destination_register, immediate_value)
-    pub fn decode_add_imm(&self, instr: u32) -> Option<(u8, u8, u32)> {
+    pub const fn decode_add_imm(&self, instr: u32) -> Option<(u8, u8, u32)> {
         if (instr & 0xFF000000) != 0x91000000 {
             return None;
         }
@@ -62,14 +62,14 @@ impl Aarch64Analyzer {
         Some((rn, rd, imm))
     }
 
-    pub fn is_pointer_auth(&self, instr: u32) -> bool {
+    pub const fn is_pointer_auth(&self, instr: u32) -> bool {
         instr == 0xD503233F || instr == 0xD503237F || instr == 0xD50303BF
     }
 
     /// Decodes BL instruction.
     ///
     /// Returns the target address.
-    fn decode_bl(&self, instr: u32, pc: u64) -> Option<u64> {
+    const fn decode_bl(&self, instr: u32, pc: u64) -> Option<u64> {
         let opcode = instr & 0xFC000000;
 
         if opcode != 0x94000000 && opcode != 0x14000000 {
@@ -87,7 +87,7 @@ impl Aarch64Analyzer {
     /// Decodes MOV register instruction (ORR with XZR).
     ///
     /// Returns (source_register, destination_register)
-    fn decode_mov_register(&self, instr: u32) -> Option<(u8, u8)> {
+    const fn decode_mov_register(&self, instr: u32) -> Option<(u8, u8)> {
         if (instr & 0xFFE0FFE0) != 0xAA0003E0 {
             return None;
         }

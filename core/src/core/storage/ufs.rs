@@ -47,18 +47,18 @@ pub enum UfsPartition {
 }
 
 impl UfsPartition {
-    pub fn as_str(&self) -> &'static str {
+    pub const fn as_str(&self) -> &'static str {
         match self {
-            UfsPartition::Lu0 => "UFS-LUA0",
-            UfsPartition::Lu1 => "UFS-LUA1",
-            UfsPartition::Lu2 => "UFS-LUA2",
-            UfsPartition::Lu3 => "UFS-LUA3",
-            UfsPartition::Lu4 => "UFS-LUA4",
-            UfsPartition::Lu5 => "UFS-LUA5",
-            UfsPartition::Lu6 => "UFS-LUA6",
-            UfsPartition::Lu7 => "UFS-LUA7",
-            UfsPartition::Lu0Lu1 => "UFS-LUA0LUA1",
-            UfsPartition::Unknown => "UFS-UNKNOWN", // Assumed to be unreachable
+            Self::Lu0 => "UFS-LUA0",
+            Self::Lu1 => "UFS-LUA1",
+            Self::Lu2 => "UFS-LUA2",
+            Self::Lu3 => "UFS-LUA3",
+            Self::Lu4 => "UFS-LUA4",
+            Self::Lu5 => "UFS-LUA5",
+            Self::Lu6 => "UFS-LUA6",
+            Self::Lu7 => "UFS-LUA7",
+            Self::Lu0Lu1 => "UFS-LUA0LUA1",
+            Self::Unknown => "UFS-UNKNOWN", // Assumed to be unreachable
         }
     }
 }
@@ -69,6 +69,10 @@ pub struct UfsStorage {
 }
 
 impl Storage for UfsStorage {
+    fn as_str(&self) -> &'static str {
+        "UFS"
+    }
+
     fn kind(&self) -> StorageType {
         StorageType::Ufs
     }
@@ -121,7 +125,7 @@ impl UfsStorage {
         // response payload, thus we have to hardcode it to 0 :(
         ufs_info.lu3_size = 0;
 
-        Ok(UfsStorage { info: ufs_info })
+        Ok(Self { info: ufs_info })
     }
 
     pub fn from_xml_response(xml: &str) -> Result<Self> {
@@ -137,7 +141,7 @@ impl UfsStorage {
 
         hex::decode_to_slice(cid_str.trim_start_matches("0x"), &mut cid)?;
 
-        Ok(UfsStorage {
+        Ok(Self {
             info: UfsInfo {
                 kind: 0x30,
                 block_size,

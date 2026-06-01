@@ -6,12 +6,16 @@ use std::io::{Read, Write};
 
 use log::debug;
 
+use super::structs::FlashOpParams;
+use crate::core::FromBytes;
 use crate::core::storage::PartitionKind;
+use crate::core::traits::ToBytes;
 use crate::da::DownloadProtocol;
 use crate::da::xflash::XFlash;
 use crate::da::xflash::cmds::*;
+use crate::da::xflash::structs::PacketLenParams;
 use crate::error::{Error, Result};
-use crate::{le_u32, le_u64};
+use crate::le_u64;
 
 pub fn read_flash<W, F>(
     xflash: &mut XFlash,
@@ -30,27 +34,16 @@ where
     let storage_type = xflash.get_storage_type() as u32;
     let partition_type = section.as_u32();
 
-    // Format:
-    // Storage Type (EMMC, UFS, NAND) u32
-    // PartType u32 (BOOT or USER for EMMC)
-    // Address u32
-    // Size u32
-    // Nand Specific
-    //
-    // 01000000 u32
-    // 08000000 u32
-    // 0000000000000000 u64
-    // 4400000000000000 u64
-    // 0000000000000000000000000000000000000000000000000000000000000000 8u32
-    // The payload above is sent when reading PGPT (addr: 0x0, size: 0x44)
-    let mut param = [0u8; 56];
-    param[0..4].copy_from_slice(&storage_type.to_le_bytes());
-    param[4..8].copy_from_slice(&partition_type.to_le_bytes());
-    param[8..16].copy_from_slice(&addr.to_le_bytes());
-    param[16..24].copy_from_slice(&(size as u64).to_le_bytes());
+    let params = FlashOpParams {
+        storage_type,
+        partition_type,
+        addr,
+        size: size as u64,
+        ..Default::default()
+    };
 
     xflash.send_cmd(Cmd::ReadData)?;
-    xflash.send(&param)?;
+    xflash.send(&params.to_bytes())?;
     status_ok!(xflash);
 
     xflash.upload_data(size, writer, progress)?;
@@ -79,14 +72,16 @@ where
     let storage_type = xflash.get_storage_type() as u32;
     let partition_type = section.as_u32();
 
-    let mut param = [0u8; 56];
-    param[0..4].copy_from_slice(&storage_type.to_le_bytes());
-    param[4..8].copy_from_slice(&partition_type.to_le_bytes());
-    param[8..16].copy_from_slice(&addr.to_le_bytes());
-    param[16..24].copy_from_slice(&(size as u64).to_le_bytes());
+    let params = FlashOpParams {
+        storage_type,
+        partition_type,
+        addr,
+        size: size as u64,
+        ..Default::default()
+    };
 
     xflash.send_cmd(Cmd::WriteData)?;
-    xflash.send(&param)?;
+    xflash.send(&params.to_bytes())?;
 
     xflash.download_data(size, reader, progress)?;
 
@@ -110,18 +105,20 @@ where
     let storage_type = xflash.get_storage_type() as u32;
     let partition_type = section.as_u32();
 
-    let mut param = [0u8; 56];
-    param[0..4].copy_from_slice(&storage_type.to_le_bytes());
-    param[4..8].copy_from_slice(&partition_type.to_le_bytes());
-    param[8..16].copy_from_slice(&addr.to_le_bytes());
-    param[16..24].copy_from_slice(&(size as u64).to_le_bytes());
+    let params = FlashOpParams {
+        storage_type,
+        partition_type,
+        addr,
+        size: size as u64,
+        ..Default::default()
+    };
 
     xflash.send_cmd(Cmd::DeviceCtrl)?;
     xflash.send_cmd(Cmd::StartDlInfo)?;
     status_ok!(xflash);
 
     xflash.send_cmd(Cmd::Format)?;
-    xflash.send(&param)?;
+    xflash.send(&params.to_bytes())?;
 
     xflash.progress_report(size, progress)?;
 
@@ -203,10 +200,9 @@ pub fn format<F>(xflash: &mut XFlash, part_name: &str, progress: F) -> Result<()
 where
     F: FnMut(usize, usize) + Send,
 {
-    let part = xflash
-        .dev_info
-        .get_partition(part_name)
-        .ok_or(Error::proto(format!("Partition '{}' not found in partition table", part_name)))?;
+    let part = xflash.dev_info.get_partition(part_name).ok_or_else(|| {
+        Error::proto(format!("Partition '{}' not found in partition table", part_name))
+    })?;
 
     xflash.send_cmd(Cmd::DeviceCtrl)?;
     xflash.send_cmd(Cmd::StartDlInfo)?;
@@ -281,14 +277,13 @@ where
 }
 
 pub fn get_packet_length(xflash: &mut XFlash) -> Result<(usize, usize)> {
-    let packet_length = xflash.devctrl(Cmd::GetPacketLength, None)?;
+    let packet_length_bytes = xflash.devctrl(Cmd::GetPacketLength, None)?;
 
-    if packet_length.len() < 8 {
-        return Err(Error::proto("Received packet length is too short"));
-    }
+    let pkt_len = PacketLenParams::from_bytes(&packet_length_bytes)
+        .ok_or_else(|| Error::penumbra("Invalid packet length"))?;
 
-    let write_len = le_u32!(packet_length, 0) as usize;
-    let read_len = le_u32!(packet_length, 4) as usize;
+    let write_len = pkt_len.write_pkt_len as usize;
+    let read_len = pkt_len.read_pkt_len as usize;
 
     xflash.write_packet_length = Some(write_len);
     xflash.read_packet_length = Some(read_len);

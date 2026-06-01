@@ -14,6 +14,7 @@ mod patch;
 #[cfg(not(feature = "no_exploits"))]
 mod sec;
 mod storage;
+mod structs;
 mod xflash_lib;
 pub use cmds::*;
 pub use xflash_lib::*;

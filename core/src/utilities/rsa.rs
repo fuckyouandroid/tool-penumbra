@@ -13,15 +13,15 @@ pub struct RsaPrivateKey {
 }
 
 impl RsaPrivateKey {
-    pub fn new(n: BigUint, d: BigUint) -> Self {
-        RsaPrivateKey { n, d }
+    pub const fn new(n: BigUint, d: BigUint) -> Self {
+        Self { n, d }
     }
 
-    pub fn n(&self) -> &BigUint {
+    pub const fn n(&self) -> &BigUint {
         &self.n
     }
 
-    pub fn d(&self) -> &BigUint {
+    pub const fn d(&self) -> &BigUint {
         &self.d
     }
 }

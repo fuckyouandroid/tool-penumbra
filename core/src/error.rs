@@ -63,32 +63,32 @@ pub enum Error {
 
 impl Error {
     pub fn io<S: Into<String>>(msg: S) -> Self {
-        Error::Io(msg.into())
+        Self::Io(msg.into())
     }
 
     pub fn conn<S: Into<String>>(msg: S) -> Self {
-        Error::Connection(msg.into())
+        Self::Connection(msg.into())
     }
 
     pub fn proto<S: Into<String>>(msg: S) -> Self {
-        Error::Protocol(msg.into())
+        Self::Protocol(msg.into())
     }
 
     pub fn penumbra<S: Into<String>>(msg: S) -> Self {
-        Error::Penumbra(msg.into())
+        Self::Penumbra(msg.into())
     }
 }
 
 impl From<std::io::Error> for Error {
     fn from(value: std::io::Error) -> Self {
-        Error::penumbra(value.to_string())
+        Self::penumbra(value.to_string())
     }
 }
 
 #[cfg(feature = "nusb")]
 impl From<nusb::Error> for Error {
     fn from(err: nusb::Error) -> Self {
-        Error::io(err.to_string())
+        Self::io(err.to_string())
     }
 }
 
@@ -576,7 +576,7 @@ pub struct XmlError {
 
 impl XmlError {
     pub fn new<S: Into<String>>(msg: S, kind: XmlErrorKind) -> Self {
-        XmlError { message: msg.into(), kind }
+        Self { message: msg.into(), kind }
     }
 
     pub fn from_message(resp: &[u8]) -> Self {
@@ -585,9 +585,9 @@ impl XmlError {
         let msg = msg.trim_end_matches('\0');
 
         match msg {
-            "ERR!UNSUPPORTED" => XmlError::new("Unsupported command", XmlErrorKind::UnsupportedCmd),
-            "ERR!CANCEL" => XmlError::new("Cancelled", XmlErrorKind::Cancel),
-            _ => XmlError::new(msg, XmlErrorKind::UnsupportedCmd),
+            "ERR!UNSUPPORTED" => Self::new("Unsupported command", XmlErrorKind::UnsupportedCmd),
+            "ERR!CANCEL" => Self::new("Cancelled", XmlErrorKind::Cancel),
+            _ => Self::new(msg, XmlErrorKind::UnsupportedCmd),
         }
     }
 }

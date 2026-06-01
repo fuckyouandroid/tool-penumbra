@@ -22,7 +22,6 @@ use crate::core::storage::{
 use crate::da::protocol::{BootMode, DownloadProtocol};
 use crate::da::xml::cmds::{
     BootTo,
-    HOST_CMDS,
     HostSupportedCommands,
     NotifyInitHw,
     Reboot,
@@ -63,7 +62,6 @@ impl DownloadProtocol for Xml {
         }
 
         info!("Successfully uploaded and booted to XML DA2");
-
         exploit!(HeapBait, self);
 
         // These may fail on some devices

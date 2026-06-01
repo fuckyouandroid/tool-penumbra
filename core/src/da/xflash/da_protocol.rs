@@ -5,8 +5,8 @@
 use std::io::{Cursor, Read, Write};
 
 use log::{debug, error, info};
-use wincode::SchemaWrite;
 
+use super::structs::RebootParams;
 use crate::connection::Connection;
 use crate::connection::port::ConnectionType;
 use crate::core::ToBytes;
@@ -43,26 +43,6 @@ use crate::error::{Error, Result, XFlashError};
 #[cfg(not(feature = "no_exploits"))]
 use crate::exploit::{Carbonara, Exploit, Kamakiri};
 use crate::{exploit, le_u32};
-
-#[derive(SchemaWrite, ToBytes)]
-struct RebootParams {
-    /// If set, the device will reboot into the
-    /// specified bootup mode.
-    is_dev_reboot: u32,
-    /// WDT timeout
-    timeout_ms: u32,
-    async_flag: u32,
-    /// The boot mode (Normal, Fastboot...)
-    bootup: u32,
-    /// Whether the Download Bit is set or not,
-    /// which will make the device enter download
-    /// mode on the next boot if set.
-    dlbit: u32,
-    not_reset_rtc_time: u32,
-    /// If set, the device will not disconnect the
-    /// USB connection during reboot.
-    not_disconnect_usb: u32,
-}
 
 impl DownloadProtocol for XFlash {
     fn upload_da(&mut self) -> Result<bool> {

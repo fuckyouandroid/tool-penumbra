@@ -30,7 +30,7 @@ pub const KNOWN_PORTS: &[(u16, u16, ConnectionType)] = &[
     (0x0FCE, 0xD1DD, ConnectionType::Brom),      // Sony USB Port (BROM F3111)
 ];
 
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub enum ConnectionType {
     Brom,
     Preloader,

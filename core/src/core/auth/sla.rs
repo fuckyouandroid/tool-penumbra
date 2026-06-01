@@ -46,7 +46,7 @@ static INSTANCE: OnceLock<AuthManager> = OnceLock::new();
 
 impl AuthManager {
     /// Get the global AuthManager instance.
-    pub fn get() -> &'static AuthManager {
+    pub fn get() -> &'static Self {
         INSTANCE.get_or_init(|| {
             #[allow(unused_mut)]
             let mut default_signers: Vec<Arc<dyn Signer>> = Vec::new();
@@ -57,23 +57,21 @@ impl AuthManager {
                 default_signers.push(local_keyring);
             }
 
-            AuthManager { signers: RwLock::new(default_signers) }
+            Self { signers: RwLock::new(default_signers) }
         })
     }
 
     /// Registers a new signer to be available for signing requests.
     pub fn register_signer(&self, signer: Arc<dyn Signer>) -> Result<()> {
-        let mut signers = self.signers.write().unwrap();
-        signers.push(signer);
+        self.signers.write().unwrap().push(signer);
 
         Ok(())
     }
 
     /// Return whether any of the registered signers can sign the given request.
     pub fn can_sign(&self, pubk: &[u8]) -> bool {
-        let signers = match self.signers.read() {
-            Ok(signers) => signers,
-            Err(_) => return false,
+        let Ok(signers) = self.signers.read() else {
+            return false;
         };
 
         for signer in signers.iter() {

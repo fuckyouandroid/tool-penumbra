@@ -15,7 +15,7 @@ use crate::utilities::patching::*;
 
 const EXTLOADER: &[u8] = include_bytes!("../../../payloads/extloader_v6.bin");
 
-pub fn to_arch(is_arm64: bool) -> Arch {
+pub const fn to_arch(is_arm64: bool) -> Arch {
     if is_arm64 { Arch::Aarch64 } else { Arch::Arm }
 }
 
@@ -27,7 +27,7 @@ pub fn patch_da1(_xml: &mut Xml) -> Result<DAEntryRegion> {
     todo!()
 }
 
-pub fn patch_da2(xml: &mut Xml) -> Result<DAEntryRegion> {
+pub fn patch_da2(xml: &Xml) -> Result<DAEntryRegion> {
     let mut da2 = xml
         .da
         .get_da2()

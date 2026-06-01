@@ -46,7 +46,7 @@ impl fmt::Debug for UsbMTKPort {
 }
 
 impl UsbMTKPort {
-    pub fn new(info: DeviceInfo, connection_type: ConnectionType) -> Self {
+    pub const fn new(info: DeviceInfo, connection_type: ConnectionType) -> Self {
         Self {
             info,
             interface: None,
@@ -95,7 +95,7 @@ impl UsbMTKPort {
     }
 
     fn setup_cdc(&self) -> Result<()> {
-        let iface = self.ctrl_interface.as_ref().ok_or(Error::io("Interface not open"))?;
+        let iface = self.ctrl_interface.as_ref().ok_or_else(|| Error::io("Interface not open"))?;
 
         const CDC_INTERFACE_NUM: u16 = 0;
         const SET_LINE_CODING: u8 = 0x20;
@@ -308,7 +308,7 @@ impl MTKPort for UsbMTKPort {
                 .iter()
                 .find(|(vid, pid, _)| device.vendor_id() == *vid && device.product_id() == *pid)
             {
-                return Ok(Some(UsbMTKPort::new(device, *conn_type)));
+                return Ok(Some(Self::new(device, *conn_type)));
             }
         }
 
