@@ -38,6 +38,7 @@ thiserror = "2.0.17"
 uuid = { version = "1.23.0", features = ["v4"] }
 wincode = { version = "0.5.1", features = ["derive"] }
 xmlcmd-derive = { path = "xmlcmd_derive" }
+hacc = { git = "https://github.com/shomykohai/hacc", version = "0.1.0" }
 
 [features]
 default = ["nusb"]
