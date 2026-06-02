@@ -5,9 +5,11 @@
 use std::io::{Cursor, Read, Write};
 
 use log::{debug, info};
+use wincode::SchemaWrite;
 use xmlcmd_derive::XmlCommand;
 
-use crate::core::storage::{RPMB_FRAME_DATA_SZ, RpmbRegion, Storage, StorageType};
+use crate::core::ToBytes;
+use crate::core::storage::{RPMB_FRAME_DATA_SZ, RpmbRegion, Storage};
 use crate::da::DownloadProtocol;
 use crate::da::xml::Xml;
 use crate::da::xml::cmds::{XmlCmdLifetime, XmlCommand};
@@ -15,10 +17,22 @@ use crate::da::xml::patch::to_arch;
 use crate::error::{Error, Result};
 use crate::exploit::get_v6_payload;
 use crate::utilities::analysis::create_analyzer;
-use crate::utilities::patching::{bytes_to_hex, patch_pattern_str};
+use crate::utilities::patching::bytes_to_hex;
 use crate::utilities::xml::get_tag;
 
 const DA_EXT: &[u8] = include_bytes!("../../../payloads/da_xml.bin");
+const POINTER_TABLE_MAGIC: u32 = 0x54525450;
+
+#[derive(SchemaWrite, ToBytes)]
+#[repr(C)]
+struct ExtPointerTable {
+    magic: u32,
+    uart_base: u32,
+    reg_cmd: u32,
+    malloc: u32,
+    free: u32,
+    mmc_get_card: u32,
+}
 
 #[derive(XmlCommand)]
 pub struct ExtAck;
@@ -67,8 +81,6 @@ pub struct ExtKeyDerive {
 pub struct ExtSej {
     #[xml(tag = "encrypt")]
     encrypt: String,
-    #[xml(tag = "legacy")]
-    legacy: String,
     #[xml(tag = "ac")]
     anti_clone: String,
     #[xml(tag = "length", fmt = "0x{length:X}")]
@@ -152,14 +164,7 @@ pub fn boot_extensions(xml: &mut Xml) -> Result<bool> {
     let ssr_base = xml.chip().ssr_base();
     let da2_base = xml.da.get_da2().map(|da2| da2.addr).unwrap_or(0);
     let da2_size = xml.da.get_da2().map(|da2| da2.data.len() as u32).unwrap_or(0);
-    let storage = match xml.get_storage() {
-        Some(s) => match s.kind() {
-            StorageType::Emmc => "EMMC",
-            StorageType::Ufs => "UFS",
-            StorageType::Unknown => "Unknown",
-        },
-        None => "Unknown",
-    };
+    let storage = xml.get_storage().map_or("Unknown", |s| s.as_str());
     let usb_log = if xml.usb_log_channel { "yes" } else { "no" };
 
     xmlcmd_e!(xml, ExtDaCtx, sej_base, tzcc_base, ssr_base, da2_base, da2_size, storage, usb_log)?;
@@ -197,16 +202,6 @@ fn prepare_extensions(xml: &Xml) -> Option<Vec<u8>> {
 
     debug!("Free function at VA 0x{:X}", free_addr);
 
-    let load_string_off = analyzer.find_function_start_from_off(off)?;
-    let load_str_addr = analyzer.offset_to_va(load_string_off)? as u32;
-
-    debug!("mxml_load_string function at VA 0x{:X}", load_str_addr);
-    let off = analyzer.find_string_xref("runtime_switchable_config/magic")?;
-    let bl_off = analyzer.get_next_bl_from_off(off)?;
-    let gettext_addr = analyzer.get_bl_target(bl_off)? as u32;
-
-    debug!("gettext function at VA 0x{:X}", gettext_addr);
-
     let off = analyzer.find_function_from_string("mmc_switch_part")?;
     let bl_off = analyzer.get_next_bl_from_off(off)?;
     let mmc_get_card = analyzer.get_bl_target(bl_off)? as u32;
@@ -217,13 +212,18 @@ fn prepare_extensions(xml: &Xml) -> Option<Vec<u8>> {
 
     debug!("UART base address at 0x{:X}", uart_base);
 
-    patch_pattern_str(&mut da_ext_data, "11111111", &bytes_to_hex(&reg_cmd_addr.to_le_bytes()))?;
-    patch_pattern_str(&mut da_ext_data, "22222222", &bytes_to_hex(&malloc_addr.to_le_bytes()))?;
-    patch_pattern_str(&mut da_ext_data, "33333333", &bytes_to_hex(&free_addr.to_le_bytes()))?;
-    patch_pattern_str(&mut da_ext_data, "44444444", &bytes_to_hex(&gettext_addr.to_le_bytes()))?;
-    patch_pattern_str(&mut da_ext_data, "55555555", &bytes_to_hex(&load_str_addr.to_le_bytes()))?;
-    patch_pattern_str(&mut da_ext_data, "66666666", &bytes_to_hex(&mmc_get_card.to_le_bytes()))?;
-    patch_pattern_str(&mut da_ext_data, "00200011", &bytes_to_hex(&uart_base.to_le_bytes()))?;
+    let table = ExtPointerTable {
+        magic: POINTER_TABLE_MAGIC,
+        uart_base,
+        reg_cmd: reg_cmd_addr,
+        malloc: malloc_addr,
+        free: free_addr,
+        mmc_get_card,
+    };
+
+    let off = da_ext_data.len() - ExtPointerTable::SIZE;
+
+    da_ext_data[off..off + ExtPointerTable::SIZE].copy_from_slice(&table.to_bytes());
 
     Some(da_ext_data)
 }
@@ -256,21 +256,12 @@ where
     Ok(())
 }
 
-pub fn sej(
-    xml: &mut Xml,
-    data: &[u8],
-    encrypt: bool,
-    legacy: bool,
-    anti_clone: bool,
-    _xor: bool,
-) -> Result<Vec<u8>> {
+pub fn sej(xml: &mut Xml, data: &[u8], encrypt: bool, anti_clone: bool) -> Result<Vec<u8>> {
     let length = data.len() as u32;
 
-    // yes or no
     let encrypt_str = if encrypt { "yes" } else { "no" };
-    let legacy_str = if legacy { "yes" } else { "no" };
     let anti_clone_str = if anti_clone { "yes" } else { "no" };
-    xmlcmd!(xml, ExtSej, encrypt_str, legacy_str, anti_clone_str, length)?;
+    xmlcmd!(xml, ExtSej, encrypt_str, anti_clone_str, length)?;
 
     let mut buf = data.to_vec();
     let mut cursor = Cursor::new(&mut buf);
